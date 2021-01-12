@@ -11,8 +11,6 @@ export default class Start extends React.Component {
     };
   }
 
-
-
   render() {
 
     const image = { uri: "https://www.jungsky.hr/sites/default/files/styles/width_767/public/uploads/2019-11/poslovni_letovi_mobile_2.png?itok=DzSrrkbx" };

@@ -14,7 +14,7 @@ import Chat from './components/Chat';
 const Stack = createStackNavigator();
 
 export default class HelloWorld extends Component {
- 
+
   render() {
 
     return (
