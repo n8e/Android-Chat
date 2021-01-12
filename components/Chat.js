@@ -1,6 +1,10 @@
 import React from 'react';
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, FlatList, PickerIOSItem } from 'react-native';
-import { GiftedChat, Bubble } from 'react-native-gifted-chat';
+import AsyncStorage from '@react-native-community/async-storage';
+import NetInfo from '@react-native-community/netinfo';
+
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, } from 'react-native';
+import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
+
 // import firebase from 'firebase';
 // import firestore from 'firebase';
 
@@ -14,7 +18,7 @@ export default class Chat extends React.Component {
       this.state = {
         messages: [],
         uid: 0,
-        loggenInText: 'Please wait, Logging in..'
+        isConnected: false,
       }
 
 if (!firebase.apps.length){
@@ -33,47 +37,68 @@ if (!firebase.apps.length){
 
 
 componentDidMount() {
-  this.authUnsubscribe = firebase.auth().onAuthStateChanged((user) => {
+  this.getMessages();
+  NetInfo.fetch().then(connection => {
+    if (connection.isConnected) {
+      console.log('online');
+    } else {
+      console.log('offline');
+    }
+  });
+
+  this.authUnsubscribe = firebase.auth()
+  .onAuthStateChanged((user) => {
     if (!user) {
       firebase.auth().signInAnonymously();
     }
 
     this.setState({
       uid: user.uid,
-      messages: []
-    });
+      messages: [],
+     });
 
-    this.unsubscribe = this.referenceChatMessages.orderBy('createdAt', 'desc').onSnapshot(this.onCollectionUpdate);
+    this.unsubscribe = this.referenceChatMessages
+    .orderBy('createdAt', 'desc')
+    .onSnapshot(this.onCollectionUpdate);
   });
+
 }
 
 componentWillUnmount() {
   this.unsubscribe();
   this.authUnsubscribe();
 }
-      
-// adding a users with ID name and avatar
-// componentDidMount() {
-//   this.setState({
-//     messages: [
-//       {
-//         _id: 1,
-//           text: 'Hello developer',
-//           createdAt: new Date(),
-//         user: {
-//           _id: 2,
-//           name: 'React Native',dfcsd
-//           avatar: 'https://placeimg.com/140/140/any',
-//         },
-//     },
-//       {_id: 2,
-//         text: 'This is a system message',
-//         createdAt: new Date(),
-//         system: true,
-//       },
-//     ]
-//   })
-// }
+// localstoreage
+async getMessages() {
+  let messages = '';
+  try {
+    messages = await AsyncStorage.getItem('messages') ||  [];
+    this.setState({
+      messages: JSON.parse(messages)
+    });
+  } catch (error) {
+    console.log(error.message)
+  }
+};
+
+async saveMessages() {
+  try{
+    await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
+  } catch (error) {
+    console.log(error.message)
+  }
+}
+
+async deleteMessages() {
+  try {
+    await AsyncStorage.removeItem('messages');
+    this.setState({
+      messages: []
+    })
+  } catch (error) {
+    console.log(error.message);
+  }
+}
 
 onCollectionUpdate = (querySnapshot) => {
   const messages = [];
@@ -83,7 +108,9 @@ onCollectionUpdate = (querySnapshot) => {
     var data = doc.data();
     messages.push({
       _id: data._id,
-      Answer: data.Answer.toString(),
+      text: data.text.toString(),
+      createdAt: data.createdAt.toDate(),
+      user: data.user
     });
   });
   this.setState({
@@ -97,33 +124,34 @@ addMessage() {
   this.referenceChatMessages.add({
       _id: message._id,
       text: message.text.toString(),
-    uid: this.state.uid,
+      createdAt: message.createdAt,
+      user: message.user
   });
 }
-
 
 onSend(messages = []) {
   this.setState(previousState => ({
     messages: GiftedChat.append(previousState.messages, messages),
   }),
   () => {
+    this.saveMessages();
     this.addMessage();
   }
   )
 }
 
-renderBubble(props) {
-  return ( 
-    <Bubble 
-    {...props}
-    wrapperStyle={{
-      right: {
-        backgroundColor: 'blue'
-      }
-    }}
-    />
-  )
-}
+
+
+// renderInputToolbar(props) {
+//   if (this.state.isConnected == false) {
+//   } else {
+//     return(
+//       <InputToolbar
+//       {...props}
+//       />
+//     );
+//   }
+// }
 
 /// add messages to collection and
   render() {
@@ -134,10 +162,10 @@ renderBubble(props) {
       <View style={styles.container}>
         <Text style={{ textAlign: 'center', color: 'grey'}}>{this.state.loggedInText}</Text>
           <GiftedChat 
-            renderBubble={this.renderBubble.bind(this)}
+            isConnected={this.state.isConnected}
+            renderInputToolbar={this.renderInputToolbar}
             messages={this.state.messages}
-            onSend={messages => this.onSend(messages)}
-            
+            onSend={messages => this.onSend(messages)}            
             user={{
               _id: this.state.uid,
             }} />
