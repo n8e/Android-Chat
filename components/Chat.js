@@ -1,9 +1,14 @@
-import React from 'react';
+import React, { useState } from 'react';
+import PropTypes from 'prop-types';
+
 import AsyncStorage from '@react-native-community/async-storage';
 import NetInfo from '@react-native-community/netinfo';
+// import MapView from 'react-native-maps';
 
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, } from 'react-native';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Video } from 'react-native';
 import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
+import CustomActions from './CustomActions';
+
 
 // import firebase from 'firebase';
 // import firestore from 'firebase';
@@ -154,18 +159,43 @@ onSend(messages = []) {
 // }
 
 /// add messages to collection and
+
+renderCustomActions = (props) => {
+  return <CustomActions {...props} />;
+};
+
+renderCustomView(props) {
+  const { currentMessage } = props;
+  if (currentMessage.location) {
+    return (
+      <MapView
+        style={{ width: 150, height: 100, borderRadius: 13, margin: 3 }}
+        region={{
+          latitude: currentMessage.location.latitude,
+          longitude: currentMessage.location.longitude,
+          latitudeDelta: 0.0922,
+          longitudeDelta: 0.0421,
+        }}
+      />
+    );
+  }
+  return null;
+}
+
   render() {
     let name = this.props.route.params.name;
+
     this.props.navigation.setOptions({ title: name });
 
      return (
       <View style={styles.container}>
-        <Text style={{ textAlign: 'center', color: 'grey'}}>{this.state.loggedInText}</Text>
+        <Text style={{ textAlign: 'center', color: 'grey' }}>{this.state.loggedInText}</Text>
           <GiftedChat 
-            isConnected={this.state.isConnected}
-            renderInputToolbar={this.renderInputToolbar}
             messages={this.state.messages}
-            onSend={messages => this.onSend(messages)}            
+            onSend={messages => this.onSend(messages)}
+            isConnected={this.state.isConnected}
+            renderInputToolbar={this.renderInputToolbar}  
+            renderActions={this.renderCustomActions}  
             user={{
               _id: this.state.uid,
             }} />
@@ -176,7 +206,6 @@ onSend(messages = []) {
     );
   };
 }
-
 
 const styles = StyleSheet.create({
   container: {

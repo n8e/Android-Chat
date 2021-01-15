@@ -10,10 +10,12 @@ import { createStackNavigator } from '@react-navigation/stack';
 // components for the app
 import Start from './components/Start';
 import Chat from './components/Chat';
+import CustomActions from './components/CustomActions'
 
 const Stack = createStackNavigator();
 
 export default class HelloWorld extends Component {
+ 
 
   render() {
 
