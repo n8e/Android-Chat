@@ -3,24 +3,11 @@ import PropTypes from 'prop-types';
 import * as Permissions from 'expo-permissions';
 import * as ImagePicker from 'expo-image-picker';
 import * as Location from 'expo-location';
-// import MapView from 'react-native-maps';
-
 import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 
-
 export default class CustomActions extends React.Component {
-   constructor(){
-    super();
 
-    this.state = {
-        image: null,
-        location: null
-      }
-    }
-
-    
-
-
+// this code lets the user pick an image they want to send with permission access
 imagePicker = async () => {
    const { status } = await Permissions.askAsync(Permissions.MEDIA_LIBRARY);
   try {
@@ -31,14 +18,15 @@ imagePicker = async () => {
 
      if (!result.cancelled) {
       const imageUrl = await this.uploadImageFetch(result.uri);
+      console.log('imgae', (result.uri));
       this.props.onSend({ image: imageUrl });
        }  
      } 
     }catch (error) {
     console.log(error.message);
-   }
-  };
-
+  }
+};
+// here we can upload pictures to our firebase database
 uploadImageFetch = async () => {
  const blob = await new Promise((resolve, reject) => {
   const xhr = new XMLHttpRequest();
@@ -54,41 +42,59 @@ uploadImageFetch = async () => {
   xhr.send(null);
 });
 
-const ref = firebase.storage().ref().child('my-image');
-const snapshot = await ref.put(blob);
+const imageNameBefore = uri.split('/');
+const imageName = imageNameBefore[imageNameBefore.length - 1];
 
+const ref = firebase.storage().ref().child(`images/${imageName}`);
+const snapshot = await ref.put(blob);
+  
 blob.close();
 
 return await snapshot.ref.getDownloadURL();
 }
-
+// take photo with the camera with asking permission
 takePhoto = async () => {
-  const { status } = await Permissions.askAsync(Permissions.MEDIA_LIBRARY, Permissions.CAMERA);
+  const { status } = await Permissions.askAsync(
+    Permissions.CAMERA,
+    Permissions.MEDIA_LIBRARY,
+  );
+  try {
+    if (status === "granted") {
+      const result = await ImagePicker.launchCameraAsync({
+        mediaTypes: ImagePicker.MediaTypeOptions.Images,
+      }).catch((error) => console.log(error));
 
-  if(status === 'granted') {
-    let result = await ImagePicker.launchCameraAsync({
-      mediaTypes: 'Camera',
-    }).catch(error => console.log(error));
-
-    if (!result.cancelled) {
-      this.setState({
-        image: result
-      });  
+      if (!result.cancelled) {
+        const imageUrl = await this.uploadImageFetch(result.uri);
+        this.props.onSend({ image: imageUrl });
+      }
     }
-
+  } catch (error) {
+    console.log(error.message);
   }
-}
- 
+};
+// get location and ask permission through async 
 getLocation = async () => {
-  const { status } = await Permissions.askAsync(Permissions.LOCATION);
-  if(status === 'granted') {
-    let result = await Location.getCurrentPositionAsync({});
-
-    if (result) {
-      this.setState({
-        location: result
-      });
+  try {
+    const { status } = await Permissions.askAsync(Permissions.LOCATION);
+    if (status === 'granted') {
+      const result = await Location.getCurrentPositionAsync(
+        {}
+      ).catch((error) => console.log(error));
+      const longitude = JSON.stringify(result.coords.longitude);
+      const altitude = JSON.stringify(result.coords.latitude);
+      if (result) {
+        actionSheetRef.current?.setModalVisible(false);
+        props.onSend({
+          location: {
+            longitude: result.coords.longitude,
+            latitude: result.coords.latitude,
+          },
+        });
+      }
     }
+  } catch (error) {
+    console.log(error.message);
   }
 }
 
@@ -121,19 +127,15 @@ onActionPress = () => {
   );
 };
 
-
 render() {
-
 return(
-  <TouchableOpacity style={[styles.container]} onPress={this.onActionPress}>
-    <View style={[styles.wrapper, this.props.wrapperStyle]}>
-
-    <Text style={[styles.iconText, this.props.iconTextStyle]}>+</Text>
-    </View>
-  </TouchableOpacity>
-)
-}
-
+      <TouchableOpacity style={[styles.container]} onPress={this.onActionPress}>
+        <View style={[styles.wrapper, this.props.wrapperStyle]}>
+          <Text style={[styles.iconText, this.props.iconTextStyle]}>+</Text>
+        </View>
+      </TouchableOpacity>
+    )
+  }
 }
 
 const styles = StyleSheet.create({
@@ -145,17 +147,17 @@ const styles = StyleSheet.create({
   },
   wrapper: {
     borderRadius: 13,
-    borderColor: '#b2b2b2',
+    borderColor: 'white',
     borderWidth: 2,
     flex: 1,
+    backgroundColor: '#FF364E',
   },
   iconText: {
-    color: '#b2b2b2',
+    color: 'white',
     fontWeight: 'bold',
-    fontSize: 16,
+    fontSize: 17,
     backgroundColor: 'transparent',
     textAlign: 'center',
-    marginBottom: '5px'
   },
 });
 

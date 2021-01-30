@@ -1,17 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import PropTypes from 'prop-types';
-
 import AsyncStorage from '@react-native-community/async-storage';
 import NetInfo from '@react-native-community/netinfo';
-// import MapView from 'react-native-maps';
-
-import { View, Text, StyleSheet, KeyboardAvoidingView, Platform, Video } from 'react-native';
-import { GiftedChat, Bubble, InputToolbar } from 'react-native-gifted-chat';
+import { View, Text, StyleSheet, KeyboardAvoidingView, Platform } from 'react-native';
+import { GiftedChat, Bubble } from 'react-native-gifted-chat';
 import CustomActions from './CustomActions';
-
-
-// import firebase from 'firebase';
-// import firestore from 'firebase';
 
 const firebase = require('firebase');
 require('firebase/firestore');
@@ -24,7 +17,7 @@ export default class Chat extends React.Component {
         messages: [],
         uid: 0,
         isConnected: false,
-      }
+}
 
 if (!firebase.apps.length){
   firebase.initializeApp({
@@ -39,39 +32,32 @@ if (!firebase.apps.length){
   this.referenceChatMessages = firebase.firestore().collection("messages");
   }
 }
-
-
+// fetching the netinfo and makes a user
 componentDidMount() {
   this.getMessages();
-  NetInfo.fetch().then(connection => {
-    if (connection.isConnected) {
-      console.log('online');
-    } else {
-      console.log('offline');
-    }
-  });
-
+    NetInfo.fetch().then(connection => {
+      if (connection.isConnected) {
+        console.log('online');
+      } else {
+        console.log('offline');
+      }
+    });
   this.authUnsubscribe = firebase.auth()
-  .onAuthStateChanged((user) => {
-    if (!user) {
-      firebase.auth().signInAnonymously();
-    }
-
-    this.setState({
-      uid: user.uid,
-      messages: [],
-     });
-
-    this.unsubscribe = this.referenceChatMessages
-    .orderBy('createdAt', 'desc')
-    .onSnapshot(this.onCollectionUpdate);
-  });
-
+    .onAuthStateChanged((user) => {
+      if (!user) {
+        firebase.auth().signInAnonymously();
+      }
+        this.setState({
+          uid: user.uid,
+          messages: [],
+      });
+        this.unsubscribe = this.referenceChatMessages.orderBy('createdAt', 'desc').onSnapshot(this.onCollectionUpdate);
+    });
 }
 
 componentWillUnmount() {
-  this.unsubscribe();
   this.authUnsubscribe();
+  this.unsubscribe();
 }
 // localstoreage
 async getMessages() {
@@ -85,7 +71,7 @@ async getMessages() {
     console.log(error.message)
   }
 };
-
+// save the messages on firebase
 async saveMessages() {
   try{
     await AsyncStorage.setItem('messages', JSON.stringify(this.state.messages));
@@ -93,7 +79,7 @@ async saveMessages() {
     console.log(error.message)
   }
 }
-
+// deletemessages on firebase
 async deleteMessages() {
   try {
     await AsyncStorage.removeItem('messages');
@@ -105,6 +91,21 @@ async deleteMessages() {
   }
 }
 
+handleConnectivityChange = (state) => {
+  const isConnected = state.isConnected;
+  if (isConnected == true) {
+    this.setState({
+      isConnected: true,
+    });
+    this.unsubscribe = this.referenceChatMessages.orderBy("createdAt", "desc").onSnapshot(this.onCollectionUpdate);
+  } else {
+    this.setState({
+      isConnected: false,
+    });
+  }
+};
+
+// creating the collection on firebase
 onCollectionUpdate = (querySnapshot) => {
   const messages = [];
   // go through each document
@@ -115,7 +116,9 @@ onCollectionUpdate = (querySnapshot) => {
       _id: data._id,
       text: data.text.toString(),
       createdAt: data.createdAt.toDate(),
-      user: data.user
+      user: data.user,
+      image: data.image || null,
+      location: data.location || null,
     });
   });
   this.setState({
@@ -130,10 +133,12 @@ addMessage() {
       _id: message._id,
       text: message.text.toString(),
       createdAt: message.createdAt,
-      user: message.user
+      user: message.user,
+      image: message.image || null,
+      location: message.location || null,
   });
 }
-
+// when we send we trigger the onSend to the gifted chat in return
 onSend(messages = []) {
   this.setState(previousState => ({
     messages: GiftedChat.append(previousState.messages, messages),
@@ -141,25 +146,20 @@ onSend(messages = []) {
   () => {
     this.saveMessages();
     this.addMessage();
-  }
+    }
   )
 }
+// this code changes the color for the chatbubbles
+renderBubble = (props) => {
+  return (
+    <Bubble
+      {...props}
+      wrapperStyle={{ right: { backgroundColor: '#FF364E' } }}
+    />
+  );
+};
 
-
-
-// renderInputToolbar(props) {
-//   if (this.state.isConnected == false) {
-//   } else {
-//     return(
-//       <InputToolbar
-//       {...props}
-//       />
-//     );
-//   }
-// }
-
-/// add messages to collection and
-
+// here we render the customAction component inside the chat component
 renderCustomActions = (props) => {
   return <CustomActions {...props} />;
 };
@@ -182,27 +182,26 @@ renderCustomView(props) {
   return null;
 }
 
-  render() {
-    let name = this.props.route.params.name;
-
-    this.props.navigation.setOptions({ title: name });
-
-     return (
+render() {
+  let name = this.props.route.params.name;
+  this.props.navigation.setOptions({ title: name });
+    return (
       <View style={styles.container}>
         <Text style={{ textAlign: 'center', color: 'grey' }}>{this.state.loggedInText}</Text>
           <GiftedChat 
             messages={this.state.messages}
-            onSend={messages => this.onSend(messages)}
+            renderBubble={this.renderBubble}
             isConnected={this.state.isConnected}
-            renderInputToolbar={this.renderInputToolbar}  
+            renderCustomView={this.renderCustomView}  
             renderActions={this.renderCustomActions}  
+            onSend={messages => this.onSend(messages)}
             user={{
               _id: this.state.uid,
             }} />
-            { Platform.OS === 'android' ? 
-            <KeyboardAvoidingView behavior="height" /> : null
-            }
-    </View>
+              { Platform.OS === 'android' ? 
+              <KeyboardAvoidingView behavior="height" /> : null
+              }
+      </View>
     );
   };
 }
@@ -218,3 +217,6 @@ const styles = StyleSheet.create({
   }
 });
 
+CustomActions.contextTypes = {
+  actionSheet: PropTypes.func,
+ };

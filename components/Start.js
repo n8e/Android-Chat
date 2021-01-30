@@ -1,5 +1,4 @@
 import React from 'react';
-import { useState } from 'react';
 import { View, Text, Button, TextInput, StyleSheet, ImageBackground } from 'react-native';
 
 
@@ -8,32 +7,30 @@ export default class Start extends React.Component {
     super(props)
     this.state = { name: '',
 
-    };
-  }
+  };
+}
 
-  render() {
-
-    const image = { uri: "https://www.jungsky.hr/sites/default/files/styles/width_767/public/uploads/2019-11/poslovni_letovi_mobile_2.png?itok=DzSrrkbx" };
-
+render() {
+  const image = { uri: "https://i.pinimg.com/originals/bc/47/67/bc47670a93657e3c7bceac136555a818.jpg"};
     return (
-
-  <View className="backgroundStyle" style={styles.container}>
-    <ImageBackground source={image} style={styles.image}>
-    <View style={{ flex:2, justifyContent: 'center', alignItems: 'center'}}>
-        <Text style={styles.text}>Username</Text>
-        <TextInput
-         style={{height: 40, borderColor: 'gray', borderWidth: 1, backgroundColor: 'white'}}
-         onChangeText={(name) => this.setState({name})}
-         value={this.state.name}
-         placeholder='Type here ...'
-       />
-       <Text style={styles.text}>You wrote: {this.state.name}</Text> 
-        <Button
-          title="Go to Chat"
-          onPress={() => this.props.navigation.navigate('Chat', { name: this.state.name })} />
+      <View className="backgroundStyle" style={styles.container}>
+        <ImageBackground source={image} style={styles.image}>
+          <View style={{ flex:1, justifyContent: 'space-between', alignItems: 'center' }}>
+            <Text style={styles.head}>OurChat</Text>
+              <TextInput
+              style={{height: 40, width: 250, borderColor: 'gray', borderWidth: 1, backgroundColor: 'white'}}
+              onChangeText={(name) => this.setState({name})}
+              value={this.state.name}
+              placeholder='Type Username Here'
+              />
+              <View style={{ alignSelf: 'stretch'}}>
+              <Button
+                title="Go to Chat" color='#FF364E'
+                onPress={() => this.props.navigation.navigate('Chat', { name: this.state.name })} />
+              </View>
+          </View>
+        </ImageBackground>
       </View>
-      </ImageBackground>
-  </View>
     )
   }
 };
@@ -41,20 +38,19 @@ export default class Start extends React.Component {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: 'white'
+    backgroundColor: 'white',
+    height: 'auto'
    },
    image: {
     flex: 1,
     resizeMode: "cover",
     justifyContent: "center"
   },
-   text: {
-     fontSize: '18px',
-     margin: '0.8em'
-   },
-    redBack: {
-    flex: 1,
-    backgroundColor: 'powderblue',
-    display: 'cover'
-    }
+  head: {
+    marginTop: 40,
+    fontSize: 40,
+    color: '#3F3F3F',
+    fontWeight: 'bold',
+    justifyContent: 'center'
+},
 });
