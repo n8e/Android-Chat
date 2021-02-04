@@ -48,7 +48,7 @@ componentDidMount() {
         firebase.auth().signInAnonymously();
       }
         this.setState({
-          uid: user.uid,
+          uid: user && user.uid,
           messages: [],
       });
         this.unsubscribe = this.referenceChatMessages.orderBy('createdAt', 'desc').onSnapshot(this.onCollectionUpdate);
@@ -57,7 +57,7 @@ componentDidMount() {
 
 componentWillUnmount() {
   this.authUnsubscribe();
-  this.unsubscribe();
+  this.unsubscribe && this.unsubscribe();
 }
 // localstoreage
 async getMessages() {
@@ -129,7 +129,7 @@ onCollectionUpdate = (querySnapshot) => {
 addMessage() { 
   // add a new list to the collection
   const message = this.state.messages[0];
-  this.referenceChatMessages.add({
+  this.referenceChatMessages && this.referenceChatMessages.add({
       _id: message._id,
       text: message.text.toString(),
       createdAt: message.createdAt,
